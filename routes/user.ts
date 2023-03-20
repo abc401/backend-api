@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import User from '../models/user'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
+
 const router = Router();
+const accessSecret = process.env.ACCESS_JWT_SECRET;
 
 router.all('/', (req, res) => {
     return res.status(200).json({
@@ -34,27 +38,70 @@ router.post(
     .withMessage("Password must contain atleast one special symbol."),
 
     async (req, res) => {
-        const username = req.body.username;
-        const password = req.body.password;
-        const email = req.body.email;
+        const username: string = req.body.username;
+        const password: string = req.body.password;
+        const email: string  = req.body.email;
+        
         const errors = validationResult(req);
         if (!errors.isEmpty()){
             return res.status(400).json({ erros: errors.array() })
         }
+
+        const salt = await bcrypt.genSalt(10);
+        const secPassword = await bcrypt.hash(password, salt);
+
         try {
-            const createdUser = await User.create({
+            User.create({
                 username: username,
                 email: email,
-                password: password
+                password: secPassword
             })
-            return res.status(201).json({
-                created: createdUser
-            })
+            return res.status(201);
         } catch (error) {
             return res.status(400).json({
                 message: "The provided email is already in use"
             })
         }
-    })
+    }
+)
+
+router.post(
+    '/login',
+    body('email').isEmail()
+    .withMessage('Bad email provided'),
+
+    body('password').exists()
+    .withMessage('Please provide a password'),
+
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                errors: errors.array()
+            })
+        }
+
+        const {email, password} = req.body;
+        const user = await User.findOne({email})
+        if (user == null) {
+            return res.status(400).json({
+                message: "Enter valid credentials"
+            })
+        }
+        const passwordsMatch = await bcrypt.compare(password, user.password);
+        if (!passwordsMatch) {
+            return res.status(400).json({
+                message: "Enter valid credentials"
+            })
+        }
+        const data = {
+            id: user.id
+        }
+        const token = jwt.sign(data, accessSecret!);
+        return res.status(200).json({
+
+        })
+    }
+)
 
 export default router;
