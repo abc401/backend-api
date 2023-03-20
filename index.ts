@@ -1,14 +1,14 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const mongoose = require('mongoose');
+import express, { json } from 'express';
+import { config } from 'dotenv';
+import { connect, connection } from 'mongoose';
 
-dotenv.config();
+config();
 
 const port = process.env.PORT;
 const databaseUri = process.env.DATABASE_URI;
 
-mongoose.connect(databaseUri);
-const db = mongoose.connection;
+connect(databaseUri!);
+const db = connection;
 
 db.on('error', (error) => {
     console.error(error);
@@ -19,14 +19,14 @@ db.once('open', () => {
 })
 
 const app = express();
-app.use(express.json());
+app.use(json());
 app.get('/', (req, res) => {
     return res.status(200).json({
         message: "Welcome to ecommerce api"
     })
 })
 
-const userRouter = require('./routes/user')
+import userRouter from './routes/user';
 app.use('/user', userRouter);
 
 app.listen(port, () => {
