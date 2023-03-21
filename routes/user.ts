@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 
 const router = Router();
-const accessSecret = process.env.ACCESS_JWT_SECRET;
+const authSecret = process.env.AUTH_JWT_SECRET;
+const refreshSecret = process.env.REFRESH_JWT_SECRET;
 
 router.all('/', (req, res) => {
     return res.status(200).json({
@@ -124,13 +125,14 @@ router.post(
             })
         }
         const data = {
-            id: user.id
+            id: user.id,
         }
-        const token = jwt.sign(data, accessSecret!);
+        const token = jwt.sign(data, authSecret!, { expiresIn: "24h" });
         return res.status(200).json({
             authToken: token
         })
     }
 )
+
 
 export default router;
