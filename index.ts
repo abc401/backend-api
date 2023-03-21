@@ -29,6 +29,10 @@ app.get('/', (req, res) => {
 import userRouter from './routes/user';
 app.use('/user', userRouter);
 
+process.on("uncaughtException", function (error) {
+  console.error(error.stack);
+});
+
 app.listen(port, () => {
     console.log(`Listening on http://localhost:${port}/`);
 });
