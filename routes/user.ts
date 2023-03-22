@@ -127,9 +127,11 @@ router.post(
         const data = {
             id: user.id,
         }
-        const token = jwt.sign(data, authSecret!, { expiresIn: "24h" });
+        const authToken = jwt.sign(data, authSecret!, { expiresIn: "5m" });
+        const refreshToken = jwt.sign(data, refreshSecret!, { expiresIn: "24h"})
         return res.status(200).json({
-            authToken: token
+            authToken: authToken,
+            refreshToken: refreshToken
         })
     }
 )
