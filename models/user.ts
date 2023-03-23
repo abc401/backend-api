@@ -16,6 +16,11 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: true
+    },
+    loggedIn: {
+        type: Boolean,
+        required: true,
+        default: false
     }
 });
 
