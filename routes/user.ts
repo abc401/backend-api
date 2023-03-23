@@ -1,42 +1,47 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import User from '../models/user'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import authenticateUser from '../middlewear/auth';
 
 const router = Router();
 const authSecret = process.env.AUTH_JWT_SECRET;
-const refreshSecret = process.env.REFRESH_JWT_SECRET;
 
 router.all('/', (req, res) => {
     return res.status(200).json({
-        message: "Welcome to the user endpoint of the ecommerce api"
+        msg: "Welcome to the user endpoint of the ecommerce api"
     })
 });
+
+export const userNameLength = 5;
+export const passwordLength = 8;
+
+import { signUp } from '../response-messages';
 
 router.post(
     '/signup',
 
-    body('username').isLength({ min: 5 })
-    .withMessage("Username must be atleast 5 characters long."),
+    body('username').isLength({ min: userNameLength })
+    .withMessage(signUp.error.userNameLength),
 
     body('email').isEmail()
-    .withMessage("Enter a valid email."),
+    .withMessage(signUp.error.badEmail),
 
-    body('password').isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long.")
+    body('password').isLength({ min: passwordLength })
+    .withMessage(signUp.error.passwordLength)
 
     .matches(/^.*[A-Z].*$/)
-    .withMessage("Password must contain atleast one uppercase letter.")
+    .withMessage(signUp.error.upperCharsInPassword)
 
     .matches(/^.*[a-z].*$/)
-    .withMessage("Password must contain atleast one lowercase letter.")
+    .withMessage(signUp.error.lowerCharsInPassword)
     
     .matches(/^.*[0-9].*$/)
-    .withMessage("Password must contain atleast one digit.")
+    .withMessage(signUp.error.digitsInPassword)
     
     .matches(/^.*[^\w\s].*$/)
-    .withMessage("Password must contain atleast one special symbol."),
+    .withMessage(signUp.error.specialCharsInPassword),
 
     async (req, res) => {
         const {username, password, email} = req.body;
@@ -49,25 +54,21 @@ router.post(
         const salt = await bcrypt.genSalt(10);
         const secPassword = await bcrypt.hash(password, salt);
 
-
-
-        const onfulfilled = () => {
-            return res.status(201).json({
-                msg: "User created successfully."
-            });
-        }
-
-        const onrejected = (err: any) => {
+        try {
+            await new User({
+                username: username,
+                email: email,
+                password: secPassword
+            }).save()
+        } catch (err: any) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 return res.status(400).json({
-                    errors: [
-                        {
-                            value: email,
-                            msg: "The provided email is already in use.",
-                            param: "email",
-                            location: "body"
-                        }
-                    ]
+                    errors: [{
+                        value: email,
+                        msg: signUp.error.emailAlreadyUsed,
+                        param: "email",
+                        location: "body"
+                    }]
                 })
             }
 
@@ -75,20 +76,16 @@ router.post(
                 msg: "Unprocessable request."
             })
         }
-
-        new User({
-            username: username,
-            email: email,
-            password: secPassword
-        })
-        .save()
-        .then(onfulfilled, onrejected);
+        return res.status(201).json({
+            msg: signUp.success.userCreated
+        });
     }
 )
 
 
 router.post(
     '/login',
+
     body('email').isEmail()
     .withMessage('Bad email.'),
 
@@ -124,14 +121,24 @@ router.post(
                 ]
             })
         }
-        const data = {
-            id: user.id,
+        const data: any = {
+            id: user.email,
         }
-        const authToken = jwt.sign(data, authSecret!, { expiresIn: "5m" });
-        const refreshToken = jwt.sign(data, refreshSecret!, { expiresIn: "24h"})
+        const authToken = jwt.sign(data, authSecret!, { expiresIn: "24h" });
         return res.status(200).json({
             authToken: authToken,
-            refreshToken: refreshToken
+        })
+    }
+)
+
+router.post(
+    "/logout",
+    authenticateUser,
+    async (req: Request, res: Response) => {
+        const user = req.body.user;
+        await User.updateOne({ email: user.email }, { loggedIn: false });
+        return res.status(200).json({
+            msg: "Logout successful"
         })
     }
 )
