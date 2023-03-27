@@ -1,4 +1,5 @@
 import { Schema, model } from 'mongoose';
+import { defaultPFPFilelName } from '../config';
 
 const userSchema = new Schema({
     username: {
@@ -21,6 +22,11 @@ const userSchema = new Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    pfp: {
+        type: String,
+        required: true,
+        default: defaultPFPFilelName
     }
 });
 
