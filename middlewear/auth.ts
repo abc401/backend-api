@@ -3,9 +3,10 @@ import jwt from 'jsonwebtoken'
 import User from '../models/user';
 import { auth } from '../response-messages';
 
+const authSecret = process.env.AUTH_JWT_SECRET!;
+
 const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
     const authToken = req.headers['authorization']?.split(" ")[1];
-    const authSecret = process.env.AUTH_JWT_SECRET!;
     if (authToken == null) {
         return res.status(401).json({
             msg: auth.error.loginRequired

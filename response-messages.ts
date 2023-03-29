@@ -6,7 +6,7 @@ export const auth = {
     }
 }
 
-import { userNameLength, passwordLength } from "./routes/user"
+import { userNameLength, passwordLength } from "./config"
 export const signUp = {
     error: {
         // Username errors

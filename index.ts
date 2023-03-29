@@ -20,16 +20,11 @@ db.once('open', () => {
 
 const app = express();
 app.use(json());
-app.get('/', (req, res) => {
-    return res.status(200).json({
-        message: "Welcome to ecommerce api"
-    })
-})
 
 import userRouter from './routes/user';
 app.use('/user', userRouter);
 
-process.on("uncaughtException", function (error) {
+process.on("uncaughtException", (error) => {
   console.error(error.stack);
 });
 

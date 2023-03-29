@@ -1,23 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import User from '../models/user'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import User from '../models/user'
 import authenticateUser from '../middlewear/auth';
+import { signUp } from '../response-messages';
+import { userNameLength, passwordLength } from '../config';
 
 const router = Router();
 const authSecret = process.env.AUTH_JWT_SECRET;
-
-router.all('/', (req, res) => {
-    return res.status(200).json({
-        msg: "Welcome to the user endpoint of the ecommerce api"
-    })
-});
-
-export const userNameLength = 5;
-export const passwordLength = 8;
-
-import { signUp } from '../response-messages';
 
 router.post(
     '/signup',
@@ -82,7 +73,6 @@ router.post(
     }
 )
 
-
 router.post(
     '/login',
 
@@ -111,6 +101,7 @@ router.post(
                 ]
             })
         }
+
         const passwordsMatch = await bcrypt.compare(password, user.password);
         if (!passwordsMatch) {
             return res.status(400).json({
@@ -121,9 +112,15 @@ router.post(
                 ]
             })
         }
+
+        user.loggedIn = true;
+        user.save();
+
         const data: any = {
-            id: user.email,
+            email: user.email,
+            username: user.username,
         }
+
         const authToken = jwt.sign(data, authSecret!, { expiresIn: "24h" });
         return res.status(200).json({
             authToken: authToken,
@@ -135,8 +132,11 @@ router.post(
     "/logout",
     authenticateUser,
     async (req: Request, res: Response) => {
-        const user = req.body.user;
-        await User.updateOne({ email: user.email }, { loggedIn: false });
+        const { user } = req.body;
+
+        user.loggedIn = false;
+        user.save();
+
         return res.status(200).json({
             msg: "Logout successful"
         })
